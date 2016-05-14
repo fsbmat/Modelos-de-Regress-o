@@ -1,0 +1,72 @@
+setwd("~/GitHub/Modelos-de-Regress-o")
+rm(list=ls())
+cat("\014")
+
+N=100
+m=matrix(ncol=1,nrow=N)
+m1=matrix(ncol=1,nrow=N)
+for (i in 1:N){
+  
+lambda=2
+n=100
+y=rpois(n,lambda)
+remove(lambda)
+#P(Yi=y)=(exp(-lambda)*lambda^y)/y!
+  
+#hist(x,prob=T,ylim=c(0,1),xlim=c(0,20),breaks = 8, col = "grey", border = "black", main="Dados simulados com distribuição Poisson")
+#curve(expr=(ppois(x=seq(1,10, by =1), lambda = lambda), from = 0, to = 10,ylab = NULL,add=T)
+#lines(density(x),col="blue")
+  
+  
+vero_poisson<- function(lambda){
+ loglik <- -sum(-lambda+y*log(lambda)-log(factorial(y)))
+ return(loglik)
+}
+
+grad<-function(lambda){
+gd=sum(-1+y/lambda)
+return(gd)
+}
+
+?na.rm
+
+start=0.1
+
+#Usando a função optim
+poisson_opt=optim(start,vero_poisson, method="BFGS",grad,hessian = F) 
+m[i,]=poisson_opt$par
+#Usando a função nlminb
+poisson_nlm=nlminb(start, vero_poisson)
+m1[i,]=poisson_nlm$par
+}
+
+#Cálculo das médias de cada coluna da matriz de parâmetros m
+mest=colMeans(m)
+mest1=colMeans(m1)
+
+#Cálculo do desvio padrão de cada coluna da matriz de parâmetros m
+dest=apply(m,2,sd)
+dest1=apply(m1,2,sd)
+#Cálculo do erro quadratíco médio de cada coluna da matriz de parâmetros m em relação ao verdadeiro valor do parâmetro
+eqm=function(x,poisson_opt){ 
+  N=length(x)
+  sqrt(sum(((x-poisson_opt)^2))/N)}
+
+eqm1=function(x,poisson_nlm){ 
+  N=length(x)
+  sqrt(sum(((x-poisson_nlm)^2))/N)}
+
+#Erro quadrático médio estimado de cada um dos parâmetros 
+lambda=2
+eqmest=c(eqm(x=m[,1],poisson_opt=lambda))
+
+#Erro quadrático médio estimado de cada um dos parâmetros 
+eqmest1=c(eqm1(x=m1[,1],poisson_nlm=lambda))
+
+
+#Tabela com os verdadeiros valores dos parâmetros e com a média 
+#desvio-padrão e erro quadrático médio dos parâmetros estimados
+tab=data.frame(truevalue=lambda,mean=mest,sd=dest,eqm=eqmest)
+tab1=data.frame(truevalue=lambda,mean=mest1,sd=dest1,eqm=eqmest1)
+tab
+tab1
